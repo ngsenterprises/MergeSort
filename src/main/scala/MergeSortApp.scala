@@ -1,7 +1,43 @@
 package com.ngs.sort.merge
 
 object MergeSortApp extends App {
+    
+  object MergeU {
 
+    def apply[A, PriorityQueue[A]]( data: Seq[Seq[A]]  )( implicit ord: Ordering[A]): Seq[A] = {
+      mergeU( data )
+    }
+
+    class OrderingTA[A, P <: PriorityQueue[A]]( ord: Ordering[A] ) extends Ordering[P] {
+      override def compare( as: P, bs: P ): Int = ( as, bs ) match {
+        case ( xs, ys ) if ( xs.isEmpty || ys.isEmpty ) => throw new RuntimeException("Match error: empty Seq.")
+        case _ => ord.compare( as.head, bs.head )
+      }
+    }
+
+    def mergeU[A, T <: PriorityQueue[A]]( data: Seq[Seq[A]] )( implicit ord: Ordering[A] ): Seq[A] = {
+
+      val pata = data.map( xs => PriorityQueue.empty ++ xs )
+
+      val que = pata.foldLeft( PriorityQueue.empty[PriorityQueue[A]]( implicitly( new OrderingTA[A, PriorityQueue[A]]( ord ) ) ) ) { (acc, ms) => ms match {
+        case p: PriorityQueue[A] if ( p.isEmpty ) => acc
+        case p: PriorityQueue[A] =>
+          acc.enqueue( p )
+          acc
+      } }
+
+      val buf = ListBuffer.empty[A]
+      while ( !que.isEmpty ) que.dequeue match {
+        case pq: PriorityQueue[A] =>
+          buf += pq.dequeue()
+          if ( !pq.isEmpty ) que.enqueue( pq )
+        case e => throw new RuntimeException(s"Match error. ${e.toString()}")
+      }
+
+      buf.toSeq
+    }
+  }
+  
   object SeqMerge {
     import scala.collection.mutable.PriorityQueue
     import scala.collection.mutable.ListBuffer
